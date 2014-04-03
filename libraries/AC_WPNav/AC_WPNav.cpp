@@ -56,7 +56,7 @@ const AP_Param::GroupInfo AC_WPNav::var_info[] PROGMEM = {
     // @DisplayName: Waypoint Acceleration 
     // @Description: Defines the horizontal acceleration in cm/s/s used during missions
     // @Units: cm/s/s
-    // @Range: 0 980
+    // @Range: 50 500
     // @Increment: 10
     // @User: Standard
     AP_GROUPINFO("ACCEL",       5, AC_WPNav, _wp_accel_cms, WPNAV_ACCELERATION),
@@ -197,7 +197,7 @@ void AC_WPNav::calc_loiter_desired_velocity(float nav_dt)
     }
 
     // constrain and scale the feed forward velocity if necessary
-    float vel_total = safe_sqrt(desired_vel.x*desired_vel.x + desired_vel.y*desired_vel.y);
+    float vel_total = pythagorous2(desired_vel.x, desired_vel.y);
     if (vel_total > _loiter_speed_cms && vel_total > 0.0f) {
     	desired_vel.x = _loiter_speed_cms * desired_vel.x/vel_total;
     	desired_vel.y = _loiter_speed_cms * desired_vel.y/vel_total;
@@ -281,6 +281,11 @@ void AC_WPNav::set_wp_origin_and_destination(const Vector3f& origin, const Vecto
         _pos_delta_unit = pos_delta/_track_length;
     }
 
+    // check _wp_accel_cms is reasonable
+    if (_wp_accel_cms <= 0) {
+        _wp_accel_cms.set_and_save(WPNAV_ACCELERATION);
+    }
+
     // initialise position controller speed and acceleration
     _pos_control.set_speed_xy(_wp_speed_cms);
     _pos_control.set_accel_xy(_wp_accel_cms);
@@ -334,7 +339,7 @@ void AC_WPNav::advance_wp_target_along_track(float dt)
     track_error = curr_delta - track_covered_pos;
 
     // calculate the horizontal error
-    float track_error_xy = safe_sqrt(track_error.x*track_error.x + track_error.y*track_error.y);
+    float track_error_xy = pythagorous2(track_error.x, track_error.y);
 
     // calculate the vertical error
     float track_error_z = fabsf(track_error.z);
@@ -419,7 +424,7 @@ void AC_WPNav::advance_wp_target_along_track(float dt)
 }
 
 /// get_wp_distance_to_destination - get horizontal distance to destination in cm
-float AC_WPNav::get_wp_distance_to_destination()
+float AC_WPNav::get_wp_distance_to_destination() const
 {
     // get current location
     Vector3f curr = _inav->get_position();
@@ -427,7 +432,7 @@ float AC_WPNav::get_wp_distance_to_destination()
 }
 
 /// get_wp_bearing_to_destination - get bearing to next waypoint in centi-degrees
-int32_t AC_WPNav::get_wp_bearing_to_destination()
+int32_t AC_WPNav::get_wp_bearing_to_destination() const
 {
     return get_bearing_cd(_inav->get_position(), _destination);
 }
@@ -461,7 +466,7 @@ void AC_WPNav::update_wpnav()
 void AC_WPNav::calculate_wp_leash_length()
 {
     // length of the unit direction vector in the horizontal
-    float pos_delta_unit_xy = sqrt(_pos_delta_unit.x*_pos_delta_unit.x+_pos_delta_unit.y*_pos_delta_unit.y);
+    float pos_delta_unit_xy = pythagorous2(_pos_delta_unit.x, _pos_delta_unit.y);
     float pos_delta_unit_z = fabsf(_pos_delta_unit.z);
 
     float speed_z;
@@ -526,6 +531,11 @@ void AC_WPNav::set_spline_origin_and_destination(const Vector3f& origin, const V
     // mission is "active" if wpnav has been called recently and vehicle reached the previous waypoint
     bool prev_segment_exists = (_flags.reached_destination && ((hal.scheduler->millis() - _wp_last_update) < 1000));
 
+    // check _wp_accel_cms is reasonable to avoid divide by zero
+    if (_wp_accel_cms <= 0) {
+        _wp_accel_cms.set_and_save(WPNAV_ACCELERATION);
+    }
+
     // segment start types
     // stop - vehicle is not moving at origin
     // straight-fast - vehicle is moving, previous segment is straight.  vehicle will fly straight through the waypoint before beginning it's spline path to the next wp
@@ -533,33 +543,31 @@ void AC_WPNav::set_spline_origin_and_destination(const Vector3f& origin, const V
     // spline-fast - vehicle is moving, previous segment is splined, vehicle will fly through waypoint but previous segment should have it flying in the correct direction (i.e. exactly parallel to position difference vector from previous segment's origin to this segment's destination)
 
     // calculate spline velocity at origin
-    if (stopped_at_start) {
+    if (stopped_at_start || !prev_segment_exists) {
     	// if vehicle is stopped at the origin, set origin velocity to 0.1 * distance vector from origin to destination
     	_spline_origin_vel = (destination - origin) * 0.1f;
     	_spline_time = 0.0f;
     	_spline_vel_scaler = 0.0f;
     }else{
     	// look at previous segment to determine velocity at origin
-        if (prev_segment_exists) {
-            if (_flags.segment_type == SEGMENT_STRAIGHT) {
-                // previous segment is straight, vehicle is moving so vehicle should fly straight through the origin
-                // before beginning it's spline path to the next waypoint. Note: we are using the previous segment's origin and destination
-                _spline_origin_vel = (_destination - _origin);
-            	_spline_time = 0.0f;	// To-Do: this should be set based on how much overrun there was from straight segment?
-            	_spline_vel_scaler = 0.0f;    // To-Do: this should be set based on speed at end of prev straight segment?
+        if (_flags.segment_type == SEGMENT_STRAIGHT) {
+            // previous segment is straight, vehicle is moving so vehicle should fly straight through the origin
+            // before beginning it's spline path to the next waypoint. Note: we are using the previous segment's origin and destination
+            _spline_origin_vel = (_destination - _origin);
+            _spline_time = 0.0f;	// To-Do: this should be set based on how much overrun there was from straight segment?
+            _spline_vel_scaler = 0.0f;    // To-Do: this should be set based on speed at end of prev straight segment?
+        }else{
+            // previous segment is splined, vehicle will fly through origin
+            // we can use the previous segment's destination velocity as this segment's origin velocity
+            // Note: previous segment will leave destination velocity parallel to position difference vector
+            //       from previous segment's origin to this segment's destination)
+            _spline_origin_vel = _spline_destination_vel;
+            if (_spline_time > 1.0f && _spline_time < 1.1f) {    // To-Do: remove hard coded 1.1f
+                _spline_time -= 1.0f;
             }else{
-                // previous segment is splined, vehicle will fly through origin
-                // we can use the previous segment's destination velocity as this segment's origin velocity
-                // Note: previous segment will leave destination velocity parallel to position difference vector
-                //       from previous segment's origin to this segment's destination)
-                _spline_origin_vel = _spline_destination_vel;
-                if (_spline_time > 1.0f && _spline_time < 1.1f) {    // To-Do: remove hard coded 1.1f
-                    _spline_time -= 1.0f;
-                }else{
-                    _spline_time = 0.0f;
-                }
-                _spline_vel_scaler = 0.0f;
+                _spline_time = 0.0f;
             }
+            _spline_vel_scaler = 0.0f;
         }
     }
 
@@ -587,7 +595,7 @@ void AC_WPNav::set_spline_origin_and_destination(const Vector3f& origin, const V
 
     // code below ensures we don't get too much overshoot when the next segment is short
     float vel_len = (_spline_origin_vel + _spline_destination_vel).length();
-    float pos_len = (destination - origin).length() * 2.0f;
+    float pos_len = (destination - origin).length() * 4.0f;
     if (vel_len > pos_len) {
         // if total start+stop velocity is more than twice position difference
         // use a scaled down start and stop velocityscale the  start and stop velocities down
@@ -701,10 +709,10 @@ void AC_WPNav::advance_spline_target_along_track(float dt)
         _pos_control.set_pos_target(target_pos);
 
         // update the yaw
-        _yaw = RadiansToCentiDegrees(atan2(target_vel.y,target_vel.x));
+        _yaw = RadiansToCentiDegrees(atan2f(target_vel.y,target_vel.x));
 
         // advance spline time to next step
-        _spline_time += spline_time_scale*0.1f;
+        _spline_time += spline_time_scale*dt;
 
         // we will reach the next waypoint in the next step so set reached_destination flag
         // To-Do: is this one step too early?
