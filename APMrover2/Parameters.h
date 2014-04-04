@@ -28,7 +28,7 @@ public:
 
         // Misc
         //
-        k_param_log_bitmask = 10,
+        k_param_log_bitmask_old = 10, // unused
         k_param_num_resets,
         k_param_reset_switch_chan,
         k_param_initial_mode,
@@ -43,6 +43,13 @@ public:
         k_param_rssi_pin = 20,
         k_param_battery_volt_pin,
         k_param_battery_curr_pin,
+
+        // braking
+        k_param_braking_percent = 30,
+
+        // misc2
+        k_param_log_bitmask = 40,
+        k_param_gps,
 
 
         // 110: Telemetry control
@@ -181,13 +188,16 @@ public:
 
     // Misc
     //
-    AP_Int16    log_bitmask;
+    AP_Int32    log_bitmask;
     AP_Int16    num_resets;
     AP_Int8	    reset_switch_chan;
     AP_Int8     initial_mode;
 
     // IO pins
     AP_Int8     rssi_pin;
+
+    // braking
+    AP_Int8     braking_percent;
 
 	// Telemetry control
 	//

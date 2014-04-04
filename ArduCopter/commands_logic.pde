@@ -301,7 +301,7 @@ static void do_land(const AP_Mission::Mission_Command& cmd)
 
         // calculate and set desired location above landing target
         Vector3f pos = pv_location_to_vector(cmd.content.location);
-        pos.z = min(current_loc.alt, RTL_ALT_MAX);
+        pos.z = current_loc.alt;
         auto_wp_start(pos);
     }else{
         // set landing state
@@ -708,7 +708,9 @@ static void do_set_home(const AP_Mission::Mission_Command& cmd)
     if(cmd.p1 == 1) {
         init_home();
     } else {
-        ahrs.set_home(cmd.content.location.lat, cmd.content.location.lng, 0);
+        Location loc = cmd.content.location;
+        loc.alt = 0;
+        ahrs.set_home(loc);
         set_home_is_set(true);
     }
 }
