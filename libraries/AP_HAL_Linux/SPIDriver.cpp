@@ -32,28 +32,28 @@ void LinuxSPIDeviceDriver::init()
     if (ret == -1) {
         goto failed;
     }
- 
+
     ret = ioctl(_fd, SPI_IOC_RD_MODE, &_mode);
     if (ret == -1) {
         goto failed;
     }
- 
+
     ret = ioctl(_fd, SPI_IOC_WR_BITS_PER_WORD, &_bitsPerWord);
     if (ret == -1) {
         goto failed;
     }
-    
+
     ret = ioctl(_fd, SPI_IOC_RD_BITS_PER_WORD, &_bitsPerWord);
     if (ret == -1) {
         goto failed;
     }
- 
-    ret = ioctl(_fd, SPI_IOC_WR_MAX_SPEED_HZ, &_speed);    
+
+    ret = ioctl(_fd, SPI_IOC_WR_MAX_SPEED_HZ, &_speed);
     if (ret == -1) {
         goto failed;
     }
- 
-    ret = ioctl(_fd, SPI_IOC_RD_MAX_SPEED_HZ, &_speed);    
+
+    ret = ioctl(_fd, SPI_IOC_RD_MAX_SPEED_HZ, &_speed);
     if (ret == -1) {
         goto failed;
     }
@@ -80,7 +80,7 @@ void LinuxSPIDeviceDriver::transaction(const uint8_t *tx, uint8_t *rx, uint16_t 
     spi[0].speed_hz      = _speed;
     spi[0].bits_per_word = _bitsPerWord;
     spi[0].cs_change     = 0;
- 
+
     ioctl(_fd, SPI_IOC_MESSAGE(1), &spi);
 }
 
@@ -106,14 +106,17 @@ void LinuxSPIDeviceDriver::transfer(const uint8_t *data, uint16_t len)
 }
 
 LinuxSPIDeviceManager::LinuxSPIDeviceManager() :
-    _device_cs0("/dev/spidev0.0", SPI_MODE_0, 8, 2600000),
-    _device_cs1("/dev/spidev0.1", SPI_MODE_0, 8, 1000000)
+    _device0_cs0("/dev/spidev0.0", SPI_MODE_0, 8, 8000000),
+    _device1_cs0("/dev/spidev1.0", SPI_MODE_0, 8, 1000000),
+    _device1_cs1("/dev/spidev1.1", SPI_MODE_0, 8, 20000000)
+
 {}
 
 void LinuxSPIDeviceManager::init(void *)
 {
-    _device_cs0.init();
-    _device_cs1.init();
+    _device0_cs0.init();
+    _device1_cs0.init();
+    _device1_cs1.init();
 }
 
 /*
@@ -123,7 +126,13 @@ AP_HAL::SPIDeviceDriver* LinuxSPIDeviceManager::device(enum AP_HAL::SPIDevice de
 {
     switch (dev) {
         case AP_HAL::SPIDevice_ADS7844:
-            return &_device_cs0;
+            return &_device0_cs0;
+        case AP_HAL::SPIDevice_HMC5843:
+            return &_device0_cs0;
+        case AP_HAL::SPIDevice_MPU6000:
+            return &_device1_cs0;
+        case AP_HAL::SPIDevice_MS5611:
+            return &_device1_cs1;
     }
     return NULL;
 }

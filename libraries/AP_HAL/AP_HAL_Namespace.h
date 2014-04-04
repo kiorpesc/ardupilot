@@ -26,7 +26,7 @@ namespace AP_HAL {
     class RCOutput;
     class Scheduler;
     class Semaphore;
-    
+
     class Util;
 
     /* Utility Classes */
@@ -52,7 +52,8 @@ namespace AP_HAL {
         SPIDevice_MS5611,
         SPIDevice_MPU6000,
         SPIDevice_ADNS3080_SPI0,
-        SPIDevice_ADNS3080_SPI3
+        SPIDevice_ADNS3080_SPI3,
+        SPIDevice_HMC5843
     };
 
 }

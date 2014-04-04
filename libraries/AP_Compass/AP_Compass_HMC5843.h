@@ -8,6 +8,39 @@
 
 #include "Compass.h"
 
+class AP_Compass_HMC5842_SPI : public Compass
+{
+private:
+    float		calibration[3];
+    bool		_initialized;
+    virtual bool        read_raw(void);
+    uint8_t		_base_config;
+    virtual bool        re_initialise(void);
+    bool                read_register(uint8_t reg, uint8_t *value);
+    bool                write_register(uint8_t reg, uint8_t value);
+    uint32_t            _retry_time; // when unhealthy the millis() value to retry at
+    AP_HAL::SPIDeviceDriver *_spi;
+    AP_HAL::Semaphore*  _spi_sem;
+
+    int16_t			    _mag_x;
+    int16_t			    _mag_y;
+    int16_t			    _mag_z;
+    int16_t             _mag_x_accum;
+    int16_t             _mag_y_accum;
+    int16_t             _mag_z_accum;
+    uint8_t			    _accum_count;
+    uint32_t            _last_accum_time;
+
+public:
+    AP_Compass_HMC5843_SPI() : Compass() {
+    }
+    bool        init(void);
+    bool        read(void);
+    void        accumulate(void);
+
+};
+
+
 class AP_Compass_HMC5843 : public Compass
 {
 private:
