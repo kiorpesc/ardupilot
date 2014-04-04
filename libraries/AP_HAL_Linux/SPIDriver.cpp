@@ -121,9 +121,9 @@ void LinuxSPIDeviceDriver::set_bus_speed(LinuxSPIDeviceDriver::bus_speed speed){
 }
 
 LinuxSPIDeviceManager::LinuxSPIDeviceManager() :
-    _device0_cs0("/dev/spidev0.0", SPI_MODE_0, 8, 8000000),
-    _device1_cs0("/dev/spidev1.0", SPI_MODE_0, 8, 1000000),
-    _device1_cs1("/dev/spidev1.1", SPI_MODE_0, 8, 20000000)
+    _device0_cs0("/dev/spidev1.0", SPI_MODE_0, 8, 8000000),
+    _device1_cs0("/dev/spidev2.0", SPI_MODE_0, 8, 1000000),
+    _device1_cs1("/dev/spidev2.1", SPI_MODE_0, 8, 20000000)
 
 {}
 
@@ -148,6 +148,8 @@ AP_HAL::SPIDeviceDriver* LinuxSPIDeviceManager::device(enum AP_HAL::SPIDevice de
             return &_device1_cs0;
         case AP_HAL::SPIDevice_MS5611:
             return &_device1_cs1;
+        default:
+            return NULL;
     }
     return NULL;
 }

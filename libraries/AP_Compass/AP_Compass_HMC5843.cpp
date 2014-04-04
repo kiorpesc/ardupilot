@@ -139,9 +139,8 @@ bool AP_Compass_HMC5843_SPI::read_raw()
 {
     uint8_t buff[7];
     uint8_t tx[7];
-    uint8_t rx[7];
     memset(&tx, 0, 7);
-    tx[0] = reg | 0b11000000; // read and increment address flags
+    tx[0] = 0x03 | 0b11000000; // start at magx, read and increment address flags
     _spi->transaction(tx, buff, 7); //1 for command, 6 for receive data
 
     int16_t rx, ry, rz;
@@ -512,13 +511,13 @@ AP_Compass_HMC5843_SPI::init()
     if(_spi == NULL) {
         hal.scheduler->panic(PSTR("PANIC: AP_Compass_HMC5843 did not get "
                     "valid SPI device driver!"));
-        return;
+        return false;
     }
-    _spi_sem = hal.spi->get_semaphore();
+    _spi_sem = _spi->get_semaphore();
     if (_spi_sem == NULL) {
         hal.scheduler->panic(PSTR("PANIC: AP_Compass_HMC5843 did not get "
                     "valid SPI semaphore!"));
-        return;
+        return false;
     }
     // determine if we are using 5843 or 5883L
     _base_config = 0;

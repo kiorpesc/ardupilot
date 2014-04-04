@@ -16,6 +16,7 @@ public:
     void cs_release();
     uint8_t transfer (uint8_t data);
     void transfer (const uint8_t *data, uint16_t len);
+    void set_bus_speed(LinuxSPIDeviceDriver::bus_speed speed);
 private:
     LinuxSemaphore _semaphore;
     const char *_spipath;
@@ -31,8 +32,9 @@ public:
     void init(void *);
     AP_HAL::SPIDeviceDriver* device(enum AP_HAL::SPIDevice);
 private:
-    LinuxSPIDeviceDriver _device_cs0;
-    LinuxSPIDeviceDriver _device_cs1;
+    LinuxSPIDeviceDriver _device0_cs0;
+    LinuxSPIDeviceDriver _device1_cs0;
+    LinuxSPIDeviceDriver _device1_cs1;
 };
 
 #endif // __AP_HAL_LINUX_SPIDRIVER_H__

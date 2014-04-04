@@ -8,11 +8,11 @@
 
 #include "Compass.h"
 
-class AP_Compass_HMC5842_SPI : public Compass
+class AP_Compass_HMC5843_SPI : public Compass
 {
 private:
     float		calibration[3];
-    bool		_initialized;
+    bool		_initialised;
     virtual bool        read_raw(void);
     uint8_t		_base_config;
     virtual bool        re_initialise(void);

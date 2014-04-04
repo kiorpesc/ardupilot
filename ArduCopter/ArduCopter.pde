@@ -289,7 +289,7 @@ static AP_Baro_MS5611 barometer(&AP_Baro_MS5611::i2c);
 static AP_Compass_PX4 compass;
  #else
   #if CONFIG_COMPASS_SERIAL == AP_COMPASS_HMC5843_SPI
-static AP_COMPASS_HMC5843_SPI compass;
+static AP_Compass_HMC5843_SPI compass;
   #else
 static AP_Compass_HMC5843 compass;
  #endif
