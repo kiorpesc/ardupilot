@@ -105,6 +105,21 @@ void LinuxSPIDeviceDriver::transfer(const uint8_t *data, uint16_t len)
     transaction(data, NULL, len);
 }
 
+void LinuxSPIDeviceDriver::set_bus_speed(LinuxSPIDeviceDriver::bus_speed speed){
+    int ret;
+    uint32_t _temp_speed;
+    if(speed == LinuxSPIDeviceDriver::SPI_SPEED_HIGH) {
+        _temp_speed = 20000000;
+    } else {
+        _temp_speed = 1000000;
+    }
+    ret = ioctl(_fd, SPI_IOC_RD_MAX_SPEED_HZ, &_temp_speed);
+    if (ret == -1) {
+        return; // no error handling here
+    }
+    return;
+}
+
 LinuxSPIDeviceManager::LinuxSPIDeviceManager() :
     _device0_cs0("/dev/spidev0.0", SPI_MODE_0, 8, 8000000),
     _device1_cs0("/dev/spidev1.0", SPI_MODE_0, 8, 1000000),
